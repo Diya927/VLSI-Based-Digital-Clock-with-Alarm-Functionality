@@ -1,0 +1,13 @@
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local text logs and temporary files
+*.log
+.DS_Store
+Thumbs.db
+
+# Standard simulation directory local files (if generated locally)
+simulation/work/
+simulation/transcript

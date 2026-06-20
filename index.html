@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VLSI Digital Clock Dashboard</title>
+    <style>
+        body {
+            background-color: #0d0e12;
+            color: #d1d5db;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 40px;
+        }
+        .header-panel {
+            border-bottom: 2px dashed #374151;
+            padding-bottom: 25px;
+            margin-bottom: 40px;
+        }
+        .header-panel h1 {
+            color: #f1f5f9;
+            font-size: 30px;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .header-panel p {
+            color: #f43f5e;
+            margin: 5px 0 0 0;
+            font-size: 13px;
+            font-family: monospace;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .dashboard-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        /* NEW structural block: Side-by-side technical panels instead of uniform grid boxes */
+        .main-hardware-row {
+            display: grid;
+            grid-template-columns: 1.8fr 1.2fr;
+            gap: 30px;
+        }
+        .tech-panel {
+            background: #161b26;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 30px;
+            position: relative;
+        }
+        .tech-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: #f43f5e;
+            border-radius: 8px 8px 0 0;
+        }
+        .panel-heading {
+            font-family: monospace;
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* Split view inside the main time panel */
+        .time-split-view {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+        .time-block {
+            text-align: center;
+        }
+        .large-digital-digits {
+            font-family: monospace;
+            font-size: 64px;
+            color: #f8fafc;
+            font-weight: bold;
+        }
+        .block-label {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+        .divider-dots {
+            font-size: 48px;
+            color: #374151;
+            font-weight: bold;
+            animation: blinker 1.5s linear infinite;
+        }
+        @keyframes blinker { 50% { opacity: 0.3; } }
+
+        /* Dedicated original alert module box */
+        .alarm-status-container {
+            background: #1f293d;
+            border-left: 4px solid #4b5563;
+            padding: 20px;
+            border-radius: 6px;
+            min-width: 220px;
+            text-align: center;
+        }
+        .alarm-value-txt {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: monospace;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+        }
+        .status-badge-pill {
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 5px 12px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .state-armed { background-color: #10b981; color: #fff; }
+        .state-alert { background-color: #ef4444; color: #fff; box-shadow: 0 0 15px rgba(239,68,68,0.3); }
+
+        /* Distinct layout lines for hardware metrics */
+        .metrics-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .metric-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #2d3748;
+        }
+        .metric-name { font-size: 14px; color: #9ca3af; }
+        .metric-score { font-family: monospace; font-size: 14px; color: #f1f5f9; }
+        
+        /* Control bar design */
+        .interaction-panel {
+            background: #161b26;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 25px;
+        }
+        .control-row-layout {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+        .nav-button {
+            background: transparent;
+            border: 1px solid #f43f5e;
+            color: #f43f5e;
+            padding: 10px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .nav-button:hover {
+            background: #f43f5e;
+            color: #0d0e12;
+        }
+        .slider-flex-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .timeline-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #2d3748;
+            outline: none;
+            border-radius: 2px;
+        }
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #f43f5e;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-panel">
+        <h1>VLSI-Based Digital Clock with Alarm Functionality</h1>
+        <p>RTL Behavioral Verification & Synthesis Optimization Dashboard</p>
+    </div>
+
+    <div class="dashboard-layout">
+        
+        <div class="main-hardware-row">
+            
+            <!-- PANEL 1: CORE TIME CONTEXT RUNNER -->
+            <div class="tech-panel">
+                <div class="panel-heading">💾 Core Register State Memory</div>
+                <div class="time-split-view">
+                    
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div class="time-block">
+                            <div id="lbl_hh" class="large-digital-digits">00</div>
+                            <div class="block-label">Hours</div>
+                        </div>
+                        <div class="divider-dots">:</div>
+                        <div class="time-block">
+                            <div id="lbl_mm" class="large-digital-digits">00</div>
+                            <div class="block-label">Minutes</div>
+                        </div>
+                        <div class="divider-dots">:</div>
+                        <div class="time-block">
+                            <div id="lbl_ss" class="large-digital-digits">00</div>
+                            <div class="block-label">Seconds</div>
+                        </div>
+                    </div>
+
+                    <div class="alarm-status-container">
+                        <div class="block-label" style="margin-bottom: 5px;">Comparator Target</div>
+                        <div class="alarm-value-txt">00 : 01</div>
+                        <div id="badge_alarm" class="status-badge-pill state-armed">Armed</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- PANEL 2: HARDWARE SCHEMATIC SIZES -->
+            <div class="tech-panel">
+                <div class="panel-heading">📊 Synthesis Hardware Estimation</div>
+                <div class="metrics-grid">
+                    <div class="metric-item"><span class="metric-name">Slice LUT Units</span><span class="metric-score">56 / 20,800 (0.27%)</span></div>
+                    <div class="metric-item"><span class="metric-name">Registers / Flip-Flops</span><span class="metric-score">44 / 41,600 (0.11%)</span></div>
+                    <div class="metric-item"><span class="metric-name">DSP Multipliers</span><span class="metric-score">0 / 90 (0.00%)</span></div>
+                    <div class="metric-item"><span class="metric-name">Block RAM Elements</span><span class="metric-score">0 / 50 (0.00%)</span></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PANEL 3: TIMELINE TRACKER CONTROL PANEL -->
+        <div class="interaction-panel">
+            <div class="panel-heading" style="margin-bottom:15px;">🕹️ Waveform Execution Step Trace</div>
+            <div class="control-row-layout">
+                <button class="nav-button" onclick="stepPrev()">[ PREV STEP ]</button>
+                
+                <div class="slider-flex-wrapper">
+                    <div style="display:flex; justify-content:space-between; font-size:11px; font-family:monospace; color:#9ca3af;">
+                        <span>T: 40,000 ns</span>
+                        <span id="frame_lbl" style="color:#f43f5e;">Vector: 1 / 63</span>
+                        <span>T: 5,010,000 ns</span>
+                    </div>
+                    <input type="range" min="0" max="62" value="0" class="timeline-slider" id="time_slider" oninput="updateState(this.value)">
+                </div>
+                
+                <button class="nav-button" onclick="stepNext()">[ NEXT STEP ]</button>
+            </div>
+            <div style="margin-top:15px; text-align:center; font-family:monospace; font-size:12px; color:#6b7280;" id="timestamp_lbl">
+                SystemVerilog Trace Event: 40000 ns
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const simData = [
+            { ns: 40000, hh: '00', mm: '00', ss: '00', alarm: 0 },
+        { ns: 130000, hh: '00', mm: '00', ss: '01', alarm: 0 },
+        { ns: 210000, hh: '00', mm: '00', ss: '02', alarm: 0 },
+        { ns: 290000, hh: '00', mm: '00', ss: '03', alarm: 0 },
+        { ns: 370000, hh: '00', mm: '00', ss: '04', alarm: 0 },
+        { ns: 450000, hh: '00', mm: '00', ss: '05', alarm: 0 },
+        { ns: 530000, hh: '00', mm: '00', ss: '06', alarm: 0 },
+        { ns: 610000, hh: '00', mm: '00', ss: '07', alarm: 0 },
+        { ns: 690000, hh: '00', mm: '00', ss: '08', alarm: 0 },
+        { ns: 770000, hh: '00', mm: '00', ss: '09', alarm: 0 },
+        { ns: 850000, hh: '00', mm: '00', ss: '10', alarm: 0 },
+        { ns: 930000, hh: '00', mm: '00', ss: '11', alarm: 0 },
+        { ns: 1010000, hh: '00', mm: '00', ss: '12', alarm: 0 },
+        { ns: 1090000, hh: '00', mm: '00', ss: '13', alarm: 0 },
+        { ns: 1170000, hh: '00', mm: '00', ss: '14', alarm: 0 },
+        { ns: 1250000, hh: '00', mm: '00', ss: '15', alarm: 0 },
+        { ns: 1330000, hh: '00', mm: '00', ss: '16', alarm: 0 },
+        { ns: 1410000, hh: '00', mm: '00', ss: '17', alarm: 0 },
+        { ns: 1490000, hh: '00', mm: '00', ss: '18', alarm: 0 },
+        { ns: 1570000, hh: '00', mm: '00', ss: '19', alarm: 0 },
+        { ns: 1650000, hh: '00', mm: '00', ss: '20', alarm: 0 },
+        { ns: 1730000, hh: '00', mm: '00', ss: '21', alarm: 0 },
+        { ns: 1810000, hh: '00', mm: '00', ss: '22', alarm: 0 },
+        { ns: 1890000, hh: '00', mm: '00', ss: '23', alarm: 0 },
+        { ns: 1970000, hh: '00', mm: '00', ss: '24', alarm: 0 },
+        { ns: 2050000, hh: '00', mm: '00', ss: '25', alarm: 0 },
+        { ns: 2130000, hh: '00', mm: '00', ss: '26', alarm: 0 },
+        { ns: 2210000, hh: '00', mm: '00', ss: '27', alarm: 0 },
+        { ns: 2290000, hh: '00', mm: '00', ss: '28', alarm: 0 },
+        { ns: 2370000, hh: '00', mm: '00', ss: '29', alarm: 0 },
+        { ns: 2450000, hh: '00', mm: '00', ss: '30', alarm: 0 },
+        { ns: 2530000, hh: '00', mm: '00', ss: '31', alarm: 0 },
+        { ns: 2610000, hh: '00', mm: '00', ss: '32', alarm: 0 },
+        { ns: 2690000, hh: '00', mm: '00', ss: '33', alarm: 0 },
+        { ns: 2770000, hh: '00', mm: '00', ss: '34', alarm: 0 },
+        { ns: 2850000, hh: '00', mm: '00', ss: '35', alarm: 0 },
+        { ns: 2930000, hh: '00', mm: '00', ss: '36', alarm: 0 },
+        { ns: 3010000, hh: '00', mm: '00', ss: '37', alarm: 0 },
+        { ns: 3090000, hh: '00', mm: '00', ss: '38', alarm: 0 },
+        { ns: 3170000, hh: '00', mm: '00', ss: '39', alarm: 0 },
+        { ns: 3250000, hh: '00', mm: '00', ss: '40', alarm: 0 },
+        { ns: 3330000, hh: '00', mm: '00', ss: '41', alarm: 0 },
+        { ns: 3410000, hh: '00', mm: '00', ss: '42', alarm: 0 },
+        { ns: 3490000, hh: '00', mm: '00', ss: '43', alarm: 0 },
+        { ns: 3570000, hh: '00', mm: '00', ss: '44', alarm: 0 },
+        { ns: 3650000, hh: '00', mm: '00', ss: '45', alarm: 0 },
+        { ns: 3730000, hh: '00', mm: '00', ss: '46', alarm: 0 },
+        { ns: 3810000, hh: '00', mm: '00', ss: '47', alarm: 0 },
+        { ns: 3890000, hh: '00', mm: '00', ss: '48', alarm: 0 },
+        { ns: 3970000, hh: '00', mm: '00', ss: '49', alarm: 0 },
+        { ns: 4050000, hh: '00', mm: '00', ss: '50', alarm: 0 },
+        { ns: 4130000, hh: '00', mm: '00', ss: '51', alarm: 0 },
+        { ns: 4210000, hh: '00', mm: '00', ss: '52', alarm: 0 },
+        { ns: 4290000, hh: '00', mm: '00', ss: '53', alarm: 0 },
+        { ns: 4370000, hh: '00', mm: '00', ss: '54', alarm: 0 },
+        { ns: 4450000, hh: '00', mm: '00', ss: '55', alarm: 0 },
+        { ns: 4530000, hh: '00', mm: '00', ss: '56', alarm: 0 },
+        { ns: 4610000, hh: '00', mm: '00', ss: '57', alarm: 0 },
+        { ns: 4690000, hh: '00', mm: '00', ss: '58', alarm: 0 },
+        { ns: 4770000, hh: '00', mm: '00', ss: '59', alarm: 0 },
+        { ns: 4850000, hh: '00', mm: '01', ss: '00', alarm: 1 },
+        { ns: 4930000, hh: '00', mm: '01', ss: '01', alarm: 1 },
+        { ns: 5010000, hh: '00', mm: '01', ss: '02', alarm: 1 }
+        ];
+
+        function updateState(index) {
+            const state = simData[index];
+            
+            document.getElementById("lbl_hh").innerText = state.hh;
+            document.getElementById("lbl_mm").innerText = state.mm;
+            document.getElementById("lbl_ss").innerText = state.ss;
+            
+            const alarmBadge = document.getElementById("badge_alarm");
+            if (state.alarm === 1) {
+                alarmBadge.innerText = "🚨 CRITICAL ALERT";
+                alarmBadge.className = "status-badge-pill state-alert";
+            } else {
+                alarmBadge.innerText = "🟢 SYSTEM ARMED";
+                alarmBadge.className = "status-badge-pill state-armed";
+            }
+            
+            document.getElementById("frame_lbl").innerText = "Vector: " + (parseInt(index) + 1) + " / " + simData.length;
+            document.getElementById("timestamp_lbl").innerText = "SystemVerilog Trace Event: " + state.ns + " ns";
+            document.getElementById("time_slider").value = index;
+        }
+
+        function stepNext() {
+            let currentVal = parseInt(document.getElementById("time_slider").value);
+            if (currentVal < simData.length - 1) {
+                updateState(currentVal + 1);
+            }
+        }
+
+        function stepPrev() {
+            let currentVal = parseInt(document.getElementById("time_slider").value);
+            if (currentVal > 0) {
+                updateState(currentVal - 1);
+            }
+        }
+
+        updateState(0);
+    </script>
+
+</body>
+</html>
